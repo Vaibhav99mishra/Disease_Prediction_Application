@@ -1,0 +1,68 @@
+import heapq
+
+def generate_largest_sequence(arr, state, m):
+    n = len(arr)
+    state = list(state)
+    
+    # Max heap (store negative values for max behavior)
+    max_heap = []
+    
+    # Push all initially unlocked elements
+    for i in range(n):
+        if state[i] == '1':
+            heapq.heappush(max_heap, (-arr[i], i))
+    
+    # Find first index of a '0' after consecutive '1's to know where to start unlocking
+    idx = 0
+    while idx < n and state[idx] == '1':
+        idx += 1
+
+    def unlock_elements_simultaneously():
+        nonlocal idx
+        unlock_list = []
+        scan_idx = idx
+        
+        # Identify unlockable elements without chain reactions
+        while scan_idx < n:
+            if state[scan_idx] == '0':
+                # Can unlock if previous is '1' (and we consider the state at iteration start)
+                if scan_idx > 0 and state[scan_idx - 1] == '1':
+                    unlock_list.append(scan_idx)
+                    scan_idx += 1
+                else:
+                    break
+            else:
+                scan_idx += 1
+        
+        # Unlock all identified elements at once
+        for u_idx in unlock_list:
+            state[u_idx] = '1'
+            heapq.heappush(max_heap, (-arr[u_idx], u_idx))
+        
+        idx = scan_idx
+
+    result = []
+    for _ in range(m):
+        if not max_heap:
+            # If no elements are available, though the problem guarantees at least one initially.
+            # Just break or handle error.
+            break
+
+        # Pick the largest available element
+        val, pos = heapq.heappop(max_heap)
+        val = -val
+        result.append(val)
+        
+        # Since the element can be chosen multiple times, push it back
+        heapq.heappush(max_heap, (-val, pos))
+        
+        # Unlock elements simultaneously
+        unlock_elements_simultaneously()
+
+    return result
+
+# Test with the problematic example
+arr = [10, 20, 30, 40]
+state = "1000"
+m = 2
+print(generate_largest_sequence(arr, state, m))  # Expected: [5, 5, 6, 6, 6]
